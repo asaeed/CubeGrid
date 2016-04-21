@@ -3,6 +3,7 @@
     more features:
     - squares of frogs combine to form bigger frogs
     - cubes colors form a message and turning from frogs to colors reveals it
+    - faces appear on some cubes
 
 */
 
@@ -41,12 +42,12 @@ function init(){
 
 
     /* LIGHT */
-    light = new THREE.DirectionalLight(0xffffff, 2);
-    light.position.set(ww/2, wh/2, 400);
+    light = new THREE.DirectionalLight(0xffffff, 1.8);
+    light.position.set(1, 1, 1).normalize();
     scene.add(light);
     light.castShadow = false;
 
-    var alight = new THREE.AmbientLight( 0xfafafa ); // soft white light
+    //var alight = new THREE.AmbientLight( 0x222222 ); // soft white light
     //scene.add(alight);
 
     createBoxes();
