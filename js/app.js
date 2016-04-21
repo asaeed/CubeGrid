@@ -1,4 +1,3 @@
-
 /*
 
     more features:
@@ -68,7 +67,6 @@ function mousemove(e){
     // light.position.x = e.clientX - ww/2;
     // light.position.y = wh/2 - e.clientY;
 
-
     raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(vector,camera);
     intersects = raycaster.intersectObjects(elements.children);
@@ -125,12 +123,10 @@ function createBoxes(){
     scene.add(elements);
 
     renderer.render(scene, camera);
-
 }
 
 var animate = function () {
     requestAnimationFrame(animate);
-
     renderer.render(scene, camera);
 };
 
