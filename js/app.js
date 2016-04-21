@@ -35,19 +35,19 @@ function init(){
     /* CAMERA */
     //camera = new THREE.PerspectiveCamera(50, ww/wh, 1, 10000);
     camera = new THREE.OrthographicCamera(ww/-2, ww/2, wh/2, wh/-2, 1, 10000);
-    camera.position.set(0, 0, 500);
+    camera.position.set(0, 0, 600);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
     scene.add(camera);
 
 
     /* LIGHT */
     light = new THREE.DirectionalLight(0xffffff, 2);
-    light.position.set(ww/2, wh/2, 250);
+    light.position.set(ww/2, wh/2, 400);
     scene.add(light);
     light.castShadow = false;
 
-    var alight = new THREE.AmbientLight( 0xaaaaaa ); // soft white light
-    scene.add(alight);
+    var alight = new THREE.AmbientLight( 0xfafafa ); // soft white light
+    //scene.add(alight);
 
     createBoxes();
 
@@ -99,7 +99,7 @@ function createBoxes(){
     var materialsArray = [
         new THREE.MeshFaceMaterial(createTextures(colorBlue)), 
         new THREE.MeshFaceMaterial(createTextures(colorGreen)),
-        //new THREE.MeshFaceMaterial(createTextures(colorYellow)), 
+        new THREE.MeshFaceMaterial(createTextures(colorYellow)), 
         //new THREE.MeshFaceMaterial(createTextures(colorOrange)),
         //new THREE.MeshFaceMaterial(createTextures(colorRed))
     ];
@@ -138,12 +138,12 @@ var getRandomInt = function(min, max) {
 
 var createTextures = function(color) {
     return [
-       new THREE.MeshLambertMaterial({ map: faceLogo }),
-       new THREE.MeshLambertMaterial({ map: faceLogo }),
        new THREE.MeshLambertMaterial({ color: color }),
-       new THREE.MeshLambertMaterial({ map: faceLogo }),
+       new THREE.MeshLambertMaterial({ color: 'black' }),
        new THREE.MeshLambertMaterial({ color: color }),
-       new THREE.MeshLambertMaterial({ map: faceLogo })
+       new THREE.MeshLambertMaterial({ color: color }),
+       new THREE.MeshLambertMaterial({ color: color }),  // starts on this one
+       new THREE.MeshLambertMaterial({ map: faceLogo })  // lands on this one after rotating
     ];
 }
 
