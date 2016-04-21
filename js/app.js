@@ -73,17 +73,20 @@ function mousemove(e){
     if(intersects.length>0){
         var cube = intersects[0].object;
         
-        // cubes go back and forth on z axis, requires perspective cam
-        // if (!cube.tl.isActive()) {
-        //     cube.tl
-        //         .to(cube.position, 0.3, { z:-120 })
-        //         .to(cube.position, 0.6, { z:-25, ease: Back.easeOut.config(6) });
-        // }
-
-        // cubes rotate
         if (!cube.tl.isActive()) {
+
+            // cubes go back and forth on z axis, requires perspective cam
+            // cube.tl
+            //     .to(cube.position, 0.3, { z:-120 })
+            //     .to(cube.position, 0.6, { z:-25, ease: Back.easeOut.config(6) });
+
+            // cubes rotate diagonally
             cube.tl
                 .to(cube.rotation, 1, { z: cube.rotation.z-Math.PI, x: cube.rotation.x-Math.PI });
+
+            // cubes rotate horizontally
+            // cube.tl
+            //     .to(cube.rotation, 1, { y: (cube.rotation.y-Math.PI) * 1 });
         }
 
     }   
