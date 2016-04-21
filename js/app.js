@@ -10,6 +10,13 @@
 var ww = window.innerWidth;
 var wh = window.innerHeight;
 
+// instantiated in init
+var renderer, scene, camera, light, elements, intersects;
+
+// instantiate here 
+var raycaster = new THREE.Raycaster();
+var vector = new THREE.Vector2();
+
 // frog colors
 var colorBlue = '#339ce2';
 var colorGreen = '#299f55';
@@ -18,7 +25,8 @@ var colorOrange = '#f58300';
 var colorRed = '#de3e1c';
 
 THREE.ImageUtils.crossOrigin = '';
-var faceLogo = THREE.ImageUtils.loadTexture("./img/logo-black.jpg");
+var textureLoader = new THREE.TextureLoader();
+var faceLogo = textureLoader.load("./img/logo-black.jpg");
 
 var boxSize = 50;
 var gapSize = 5;
@@ -28,7 +36,7 @@ function init(){
     /* WEBGL RENDERER */
     renderer = new THREE.WebGLRenderer({canvas : document.getElementById('canvas'), antialias: true });
     renderer.setSize(ww,wh);
-    renderer.shadowMapEnabled = true;
+    renderer.shadowMap.enabled = true;
 
     /* SCENE */
     scene = new THREE.Scene();
@@ -42,59 +50,30 @@ function init(){
 
 
     /* LIGHT */
-    light = new THREE.DirectionalLight(0xffffff, 1.8);
+    light = new THREE.DirectionalLight(0xffefef, 1.8);
     light.position.set(1, 1, 1).normalize();
     scene.add(light);
     light.castShadow = false;
 
-    //var alight = new THREE.AmbientLight( 0x222222 ); // soft white light
-    //scene.add(alight);
+    light = new THREE.DirectionalLight( 0xffefef, 1.8 );
+    light.position.set(-1, -1, -1).normalize();
+    scene.add(light);
+    light.castShadow = false;
 
     createBoxes();
 
     animate();
 
-    window.addEventListener("mousemove", mousemove);
+    window.addEventListener("mousemove", onMouseMove);
+    setInterval(onInterval, 4000);
 }
 
-var mouse= {};
-function mousemove(e){
-    vector = new THREE.Vector2();
-    vector.set(
-        2 * (e.clientX / ww) - 1,
-        1 - 2 * (e.clientY / wh )
-    );
-
-    // light.position.x = e.clientX - ww/2;
-    // light.position.y = wh/2 - e.clientY;
-
-    raycaster = new THREE.Raycaster();
-    raycaster.setFromCamera(vector,camera);
-    intersects = raycaster.intersectObjects(elements.children);
-    if(intersects.length>0){
-        var cube = intersects[0].object;
-        
-        if (!cube.tl.isActive()) {
-
-            // cubes go back and forth on z axis, requires perspective cam
-            // cube.tl
-            //     .to(cube.position, 0.3, { z:-120 })
-            //     .to(cube.position, 0.6, { z:-25, ease: Back.easeOut.config(6) });
-
-            // cubes rotate diagonally
-            cube.tl
-                .to(cube.rotation, 1, { z: cube.rotation.z-Math.PI, x: cube.rotation.x-Math.PI });
-
-            // cubes rotate horizontally
-            // cube.tl
-            //     .to(cube.rotation, 1, { y: (cube.rotation.y-Math.PI) * 1 });
-        }
-
-    }   
-}
+var animate = function () {
+    requestAnimationFrame(animate);
+    renderer.render(scene, camera);
+};
 
 function createBoxes(){
-    
     elements = new THREE.Object3D();
 
     grid = { x: Math.floor(ww/boxSize), y: Math.floor(wh/boxSize) };
@@ -125,14 +104,14 @@ function createBoxes(){
     }
 
     scene.add(elements);
-
     renderer.render(scene, camera);
 }
 
-var animate = function () {
-    requestAnimationFrame(animate);
-    renderer.render(scene, camera);
-};
+/* 
+
+helpers 
+
+*/
 
 var getRandomInt = function(min, max) {
     var returnVal = Math.floor((Math.random() * max) + min);
@@ -149,6 +128,40 @@ var createTextures = function(color) {
        new THREE.MeshLambertMaterial({ color: color }),  // starts on this one
        new THREE.MeshLambertMaterial({ map: faceLogo })  // lands on this one after rotating
     ];
+}
+
+/*
+
+events
+
+*/
+
+function onMouseMove(e) {
+    vector.set(
+        2 * (e.clientX / ww) - 1,
+        1 - 2 * (e.clientY / wh )
+    );
+
+    raycaster.setFromCamera(vector,camera);
+    intersects = raycaster.intersectObjects(elements.children);
+    if(intersects.length>0){
+        var cube = intersects[0].object;
+        
+        if (!cube.tl.isActive()) {
+
+            // cubes go back and forth on z axis, requires perspective cam
+            // cube.tl
+            //     .to(cube.position, 0.3, { z:-120 })
+            //     .to(cube.position, 0.6, { z:-25, ease: Back.easeOut.config(6) });
+
+            // cubes rotate diagonally
+            cube.tl.to(cube.rotation, 1, { z: cube.rotation.z-Math.PI, x: cube.rotation.x-Math.PI });
+        }
+    }   
+}
+
+function onInterval() {
+    console.log('interval');
 }
 
 init();
