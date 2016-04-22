@@ -11,11 +11,14 @@ var ww = window.innerWidth;
 var wh = window.innerHeight;
 
 // instantiated in init
-var renderer, scene, camera, light, elements, intersects;
+var renderer, scene, camera, light, intersects;
 
 // instantiate here 
+var elements = new THREE.Object3D();
 var raycaster = new THREE.Raycaster();
 var vector = new THREE.Vector2();
+var textureLoader = new THREE.TextureLoader();
+var faceLogo = textureLoader.load('./img/logo-black.jpg');
 
 // frog colors
 var colorBlue = '#339ce2';
@@ -24,14 +27,12 @@ var colorYellow = '#ffde1a';
 var colorOrange = '#f58300';
 var colorRed = '#de3e1c';
 
-THREE.ImageUtils.crossOrigin = '';
-var textureLoader = new THREE.TextureLoader();
-var faceLogo = textureLoader.load("./img/logo-black.jpg");
-
 var boxSize = 50;
 var gapSize = 5;
+//var grid = { x: Math.floor(ww/boxSize), y: Math.floor(wh/boxSize) };
+var grid = { x: 4, y: 4 };
 
-function init(){
+function init() {
 
     /* WEBGL RENDERER */
     renderer = new THREE.WebGLRenderer({canvas : document.getElementById('canvas'), antialias: true });
@@ -64,7 +65,7 @@ function init(){
 
     animate();
 
-    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener('mousemove', onMouseMove, false);
     setInterval(onInterval, 4000);
 }
 
@@ -74,11 +75,6 @@ var animate = function () {
 };
 
 function createBoxes(){
-    elements = new THREE.Object3D();
-
-    grid = { x: Math.floor(ww/boxSize), y: Math.floor(wh/boxSize) };
-    rest = { x: ww%boxSize, y: wh%boxSize };
-
     var materialsArray = [
         new THREE.MeshFaceMaterial(createTextures(colorBlue)), 
         new THREE.MeshFaceMaterial(createTextures(colorGreen)),
@@ -88,17 +84,18 @@ function createBoxes(){
     ];
 
     var geometry = new THREE.BoxGeometry(boxSize, boxSize, boxSize);
-    //var material = new THREE.MeshFaceMaterial(textures);
-    for(var i=0;i<grid.y;i++) {
-        for(var j=0;j<grid.x;j++) {
+    for (var x = 0; x < grid.x; x++) {
+        for (var y = 0; y < grid.y; y++) {
             var material = materialsArray[getRandomInt(0, materialsArray.length)];
-            cube = new THREE.Mesh(geometry, material);
-            cube.position.x = (boxSize*j)-ww/2 + gapSize*j;
-            cube.position.y = (boxSize*i)-wh/2 + gapSize*i;
-            cube.position.z = -25;
-            cube.castShadow = true;
-            cube.receiveShadow = true;
+            var cube = new THREE.Mesh(geometry, material);
+            cube.position.x = (boxSize*x)-ww/2 + gapSize*x;
+            cube.position.y = (boxSize*y)-wh/2 + gapSize*y;
+            cube.position.z = -20;
+            //cube.castShadow = true;
+            //cube.receiveShadow = true;
             cube.tl = new TimelineMax();
+            cube.rotated = false;
+            cube.cornerOfSquareOfSize = 0;
             elements.add(cube);
         }
     }
@@ -137,14 +134,11 @@ events
 */
 
 function onMouseMove(e) {
-    vector.set(
-        2 * (e.clientX / ww) - 1,
-        1 - 2 * (e.clientY / wh )
-    );
+    vector.set((e.clientX / ww) * 2 - 1, - (e.clientY / wh ) * 2 + 1);
 
     raycaster.setFromCamera(vector,camera);
     intersects = raycaster.intersectObjects(elements.children);
-    if(intersects.length>0){
+    if (intersects.length>0){
         var cube = intersects[0].object;
         
         if (!cube.tl.isActive()) {
@@ -155,13 +149,55 @@ function onMouseMove(e) {
             //     .to(cube.position, 0.6, { z:-25, ease: Back.easeOut.config(6) });
 
             // cubes rotate diagonally
-            cube.tl.to(cube.rotation, 1, { z: cube.rotation.z-Math.PI, x: cube.rotation.x-Math.PI });
+            cube.tl.to(cube.rotation, 1, { 
+                z: cube.rotation.z-Math.PI, 
+                x: cube.rotation.x-Math.PI, 
+                onComplete: function(a) {
+                    // if it has rotated -(pi * 2), then reset to 0 - keeps numbers in control
+                    var hasRotated = Math.ceil(this.target.x * 100) == -628;
+                    if (hasRotated) {
+                        this.target.x = 0;
+                        this.target.z = 0
+                    }
+
+                    // toggle rotated flag 
+                    cube.rotated = !cube.rotated;
+                } 
+            });
         }
     }   
 }
 
 function onInterval() {
-    console.log('interval');
+    var cubes = elements.children;
+    var numRotated = 0;
+    var i, iLeft, iBottom, iBottomLeft;
+
+    // maximal square algorithm
+    // skip left and bottom edge
+    for (var x = 1; x < grid.x; x++) {
+        for (var y = 1; y < grid.y; y++) {
+            i = grid.x * x + y;
+
+            if (cubes[i].rotated) {
+                numRotated++;
+                //console.log(x + ', ' + y);
+
+                iLeft = grid.x * (x-1) + y;
+                iBottom = grid.x * x + (y-1);
+                iBottomLeft = grid.x * (x-1) + (y-1);
+
+                console.log(iBottomLeft + '-' + iLeft + '-' + iBottom + '-' + i);
+
+                cubes[i].cornerOfSquareOfSize = Math.min(cubes[iLeft], cubes[iBottom], cubes[iBottomLeft]);
+
+                //TODO: draw this ^ value on each square 
+                // or skip to identifying squares by drawing borders or something
+
+            }
+        }
+    }
+    //console.log(numRotated);
 }
 
 init();
