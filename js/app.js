@@ -4,6 +4,7 @@
     - squares of frogs combine to form bigger frogs
     - cubes colors form a message and turning from frogs to colors reveals it
     - faces appear on some cubes
+    - when a big cube is flipped, it breaks into smaller cubes
 
 */
 
@@ -15,10 +16,10 @@ var renderer, scene, camera, light, intersects;
 
 // instantiate here 
 var elements = new THREE.Object3D();
+var elementsBig = new THREE.Object3D();
 var raycaster = new THREE.Raycaster();
 var vector = new THREE.Vector2();
 var textureLoader = new THREE.TextureLoader();
-var faceLogo = textureLoader.load('./img/logo-black.jpg');
 
 // frog colors
 var colorBlue = '#339ce2';
@@ -29,8 +30,10 @@ var colorRed = '#de3e1c';
 
 var boxSize = 50;
 var gapSize = 5;
-//var grid = { x: Math.floor(ww/boxSize), y: Math.floor(wh/boxSize) };
-var grid = { x: 4, y: 4 };
+var grid = { x: Math.floor(ww/boxSize), y: Math.floor(wh/boxSize) };
+//var grid = { x: 4, y: 4 };
+
+var faceLogo = textureLoader.load('./img/logo-black.jpg', init);
 
 function init() {
 
@@ -66,7 +69,8 @@ function init() {
     animate();
 
     window.addEventListener('mousemove', onMouseMove, false);
-    setInterval(onInterval, 4000);
+    //setInterval(onInterval, 4000);
+    window.addEventListener('click', onInterval, false);
 }
 
 var animate = function () {
@@ -114,6 +118,10 @@ var getRandomInt = function(min, max) {
     var returnVal = Math.floor((Math.random() * max) + min);
     //console.log(returnVal);
     return returnVal;
+};
+
+var coordsToIndex = function(x, y) {
+    return grid.y * x + y;
 };
 
 var createTextures = function(color) {
@@ -172,32 +180,63 @@ function onInterval() {
     var cubes = elements.children;
     var numRotated = 0;
     var i, iLeft, iBottom, iBottomLeft;
+    var squareSize = 0;
+    var maxSize = 0;
+    var squareArray = [];
+
+    //console.log(grid.x + ', ' + grid.y);
 
     // maximal square algorithm
-    // skip left and bottom edge
-    for (var x = 1; x < grid.x; x++) {
-        for (var y = 1; y < grid.y; y++) {
-            i = grid.x * x + y;
+    for (var x = 0; x < grid.x; x++) {
+        for (var y = 0; y < grid.y; y++) {
+            i = coordsToIndex(x, y);
+
+            // initialize
+            cubes[i].cornerOfSquareOfSize = 0;
 
             if (cubes[i].rotated) {
                 numRotated++;
                 //console.log(x + ', ' + y);
 
-                iLeft = grid.x * (x-1) + y;
-                iBottom = grid.x * x + (y-1);
-                iBottomLeft = grid.x * (x-1) + (y-1);
+                // if cube is on bottom or left edge, 1 if rotated
+                if (x == 0 || y == 0) {
+                    cubes[i].cornerOfSquareOfSize = 1;
+                    continue;
+                }
 
-                console.log(iBottomLeft + '-' + iLeft + '-' + iBottom + '-' + i);
+                // for the remaining cubes, 0 if it's 0, else 1 + min of it's left/bottom/bottom-left neighbors
+                iLeft = coordsToIndex(x-1, y);
+                iBottom = coordsToIndex(x, y-1);
+                iBottomLeft = coordsToIndex(x-1, y-1);
+                squareSize = 1 + Math.min(cubes[iLeft].cornerOfSquareOfSize, cubes[iBottom].cornerOfSquareOfSize, cubes[iBottomLeft].cornerOfSquareOfSize);
+                
+                cubes[i].cornerOfSquareOfSize = squareSize;
 
-                cubes[i].cornerOfSquareOfSize = Math.min(cubes[iLeft], cubes[iBottom], cubes[iBottomLeft]);
+                //console.log(iBottomLeft + '-' + iLeft + '-' + iBottom + ' -> ' + i);
+                //console.log(cubes[iBottomLeft].cornerOfSquareOfSize + '-' + cubes[iLeft].cornerOfSquareOfSize + '-' + cubes[iBottom].cornerOfSquareOfSize + ' -> ' + cubes[i].cornerOfSquareOfSize);
 
-                //TODO: draw this ^ value on each square 
-                // or skip to identifying squares by drawing borders or something
+                // keep track of maximum square size
+                if (maxSize < squareSize)
+                    maxSize = squareSize;
 
+                // maintain data structure for big squares
+                // [3] -> [{x:1, y:3}, {x:2, y:6}] 
+                if (squareSize > 1) {
+                    if (typeof squareArray[squareSize] === 'undefined') squareArray[squareSize] = [];
+                    squareArray[squareSize].push({ x: x, y: y });
+                }
             }
         }
     }
     //console.log(numRotated);
+    //console.log(maxSize);
+    console.log(squareArray);
+
+    // starting with maxSize and going smaller, convert squares to bigger cubes
+    for (var s = maxSize; s > 1; s--) {
+
+    }
+
 }
 
-init();
+//init();
