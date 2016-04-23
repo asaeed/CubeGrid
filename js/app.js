@@ -12,7 +12,7 @@ var ww = window.innerWidth;
 var wh = window.innerHeight;
 
 // instantiated in init
-var renderer, scene, camera, light, intersects;
+var renderer, scene, camera, light, intersects, materialsArray;
 
 // instantiate here 
 var elements = new THREE.Object3D();
@@ -31,7 +31,7 @@ var colorRed = '#de3e1c';
 var boxSize = 50;
 var gapSize = 5;
 var grid = { x: Math.floor(ww/boxSize), y: Math.floor(wh/boxSize) };
-//var grid = { x: 4, y: 4 };
+//var grid = { x: 5, y: 5 };
 
 var faceLogo = textureLoader.load('./img/logo-black.jpg', init);
 
@@ -64,6 +64,15 @@ function init() {
     scene.add(light);
     light.castShadow = false;
 
+    /* MATERIALS */
+    materialsArray = [
+        new THREE.MeshFaceMaterial(createTextures(colorBlue)), 
+        new THREE.MeshFaceMaterial(createTextures(colorGreen)),
+        new THREE.MeshFaceMaterial(createTextures(colorYellow)), 
+        //new THREE.MeshFaceMaterial(createTextures(colorOrange)),
+        //new THREE.MeshFaceMaterial(createTextures(colorRed))
+    ];
+
     createBoxes();
 
     animate();
@@ -79,21 +88,13 @@ var animate = function () {
 };
 
 function createBoxes(){
-    var materialsArray = [
-        new THREE.MeshFaceMaterial(createTextures(colorBlue)), 
-        new THREE.MeshFaceMaterial(createTextures(colorGreen)),
-        new THREE.MeshFaceMaterial(createTextures(colorYellow)), 
-        //new THREE.MeshFaceMaterial(createTextures(colorOrange)),
-        //new THREE.MeshFaceMaterial(createTextures(colorRed))
-    ];
-
     var geometry = new THREE.BoxGeometry(boxSize, boxSize, boxSize);
     for (var x = 0; x < grid.x; x++) {
         for (var y = 0; y < grid.y; y++) {
             var material = materialsArray[getRandomInt(0, materialsArray.length)];
             var cube = new THREE.Mesh(geometry, material);
-            cube.position.x = (boxSize*x)-ww/2 + gapSize*x;
-            cube.position.y = (boxSize*y)-wh/2 + gapSize*y;
+            cube.position.x = (boxSize * x) + (gapSize * x) - ww/2;
+            cube.position.y = (boxSize * y) + (gapSize * y) - wh/2;
             cube.position.z = -20;
             //cube.castShadow = true;
             //cube.receiveShadow = true;
@@ -105,6 +106,7 @@ function createBoxes(){
     }
 
     scene.add(elements);
+    scene.add(elementsBig);
     renderer.render(scene, camera);
 }
 
@@ -124,7 +126,7 @@ var coordsToIndex = function(x, y) {
     return grid.y * x + y;
 };
 
-var createTextures = function(color) {
+function createTextures(color) {
     return [
        new THREE.MeshLambertMaterial({ color: color }),
        new THREE.MeshLambertMaterial({ color: 'black' }),
@@ -145,10 +147,11 @@ function onMouseMove(e) {
     vector.set((e.clientX / ww) * 2 - 1, - (e.clientY / wh ) * 2 + 1);
 
     raycaster.setFromCamera(vector,camera);
+
+    // check for intersects with cubes in grid
     intersects = raycaster.intersectObjects(elements.children);
-    if (intersects.length>0){
+    if (intersects.length > 0) {
         var cube = intersects[0].object;
-        
         if (!cube.tl.isActive()) {
 
             // cubes go back and forth on z axis, requires perspective cam
@@ -173,7 +176,31 @@ function onMouseMove(e) {
                 } 
             });
         }
-    }   
+    } 
+
+    // check for intersects with big cubes
+    intersects = raycaster.intersectObjects(elementsBig.children);
+    if (intersects.length > 0) {
+        cube = intersects[0].object;
+        if (!cube.tl.isActive()) {
+
+            // big cubes rotate horizontally
+            cube.tl.to(cube.rotation, 1, { 
+                y: cube.rotation.y-Math.PI,
+                onComplete: function(a) {
+                    // if it has rotated -(pi * 2), then reset to 0 - keeps numbers in control
+                    var hasRotated = Math.ceil(this.target.x * 100) == -628;
+                    if (hasRotated) {
+                        this.target.x = 0;
+                        this.target.z = 0
+                    }
+
+                    // toggle rotated flag 
+                    cube.rotated = !cube.rotated;
+                } 
+            });
+        }
+    }
 }
 
 function onInterval() {
@@ -230,13 +257,29 @@ function onInterval() {
     }
     //console.log(numRotated);
     //console.log(maxSize);
-    console.log(squareArray);
+    //console.log(squareArray);
 
     // starting with maxSize and going smaller, convert squares to bigger cubes
-    for (var s = maxSize; s > 1; s--) {
+    //for (var s = maxSize; s > 1; s--) {
+    for (var s = maxSize; s == maxSize; s--) { // temporarily deal with just largest size
+        console.log('size: ' + s);
+        var squaresOfOneSize = squareArray[s];
 
+        for (var t = 0; t < squaresOfOneSize.length; t++) {
+            var topRightCorner = squaresOfOneSize[t];
+            var topLeftCorner = { x: topRightCorner.x - s + 1, y: topRightCorner.y };
+            var bigBoxSize = s * boxSize + (s-1) * gapSize;
+
+            // looks better as a square, not a cube
+            var geometry = new THREE.BoxGeometry(bigBoxSize, bigBoxSize, 1);
+            var material = materialsArray[getRandomInt(0, materialsArray.length)];
+            var cube = new THREE.Mesh(geometry, material);
+            cube.position.x = (boxSize * topLeftCorner.x) + (gapSize * topLeftCorner.x) - ww/2 + (boxSize + gapSize) * (s-1) / 2;
+            cube.position.y = (boxSize * topLeftCorner.y) + (gapSize * topLeftCorner.y) - wh/2 - (boxSize + gapSize) * (s-1) / 2;
+            cube.position.z = 100;
+            cube.tl = new TimelineMax();
+            cube.rotated = true;
+            elementsBig.add(cube);
+        }
     }
-
 }
-
-//init();
