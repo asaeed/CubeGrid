@@ -99,6 +99,7 @@ function createBoxes(){
             //cube.castShadow = true;
             //cube.receiveShadow = true;
             cube.tl = new TimelineMax();
+            cube.isDisabled = false;
             cube.rotated = false;
             cube.cornerOfSquareOfSize = 0;
             elements.add(cube);
@@ -154,10 +155,7 @@ function onMouseMove(e) {
         var cube = intersects[0].object;
         if (!cube.tl.isActive()) {
 
-            // cubes go back and forth on z axis, requires perspective cam
-            // cube.tl
-            //     .to(cube.position, 0.3, { z:-120 })
-            //     .to(cube.position, 0.6, { z:-25, ease: Back.easeOut.config(6) });
+            if (cube.isDisabled) return;
 
             // cubes rotate diagonally
             cube.tl.to(cube.rotation, 1, { 
@@ -260,26 +258,60 @@ function onInterval() {
     //console.log(squareArray);
 
     // starting with maxSize and going smaller, convert squares to bigger cubes
-    //for (var s = maxSize; s > 1; s--) {
-    for (var s = maxSize; s == maxSize; s--) { // temporarily deal with just largest size
+    for (var s = maxSize; s > 1; s--) {
+    //for (var s = maxSize; s == maxSize; s--) { // temporarily deal with just largest size
         console.log('size: ' + s);
         var squaresOfOneSize = squareArray[s];
 
         for (var t = 0; t < squaresOfOneSize.length; t++) {
             var topRightCorner = squaresOfOneSize[t];
+            //console.log(topRightCorner);
             var topLeftCorner = { x: topRightCorner.x - s + 1, y: topRightCorner.y };
-            var bigBoxSize = s * boxSize + (s-1) * gapSize;
+            var skipSquare = false;
+
+            // check cubes behind this square
+            for (var u = topLeftCorner.x; u < topLeftCorner.x+s; u++) {
+                for (var v = topLeftCorner.y-s+1; v < topLeftCorner.y+1; v++) {
+                    var cube = cubes[coordsToIndex(u, v)];
+
+                    // if already disabled, skip this big square
+                    if (cube.isDisabled) {
+                        console.log('cube disabled: ' + u + ', ' + v);
+                        skipSquare = true;
+                        break;
+                    }
+                }
+                if (skipSquare) break;
+            }
+            if (skipSquare) continue;
+
+            // disable cubes behind this square
+            for (var u = topLeftCorner.x; u < topLeftCorner.x+s; u++) {
+                for (var v = topLeftCorner.y-s+1; v < topLeftCorner.y+1; v++) {
+                    var cube = cubes[coordsToIndex(u, v)];
+
+                    // disable cube
+                    cube.isDisabled = true;
+
+                    // animate to black side
+                    cube.tl.to(cube.rotation, 0.2, { y: cube.rotation.y+Math.PI/2 });
+                }
+            }
 
             // looks better as a square, not a cube
+            var bigBoxSize = s * boxSize + (s-1) * gapSize;
             var geometry = new THREE.BoxGeometry(bigBoxSize, bigBoxSize, 1);
             var material = materialsArray[getRandomInt(0, materialsArray.length)];
-            var cube = new THREE.Mesh(geometry, material);
-            cube.position.x = (boxSize * topLeftCorner.x) + (gapSize * topLeftCorner.x) - ww/2 + (boxSize + gapSize) * (s-1) / 2;
-            cube.position.y = (boxSize * topLeftCorner.y) + (gapSize * topLeftCorner.y) - wh/2 - (boxSize + gapSize) * (s-1) / 2;
-            cube.position.z = 100;
-            cube.tl = new TimelineMax();
-            cube.rotated = true;
-            elementsBig.add(cube);
+            var square = new THREE.Mesh(geometry, material);
+            square.position.x = (boxSize * topLeftCorner.x) + (gapSize * topLeftCorner.x) - ww/2 + (boxSize + gapSize) * (s-1) / 2;
+            square.position.y = (boxSize * topLeftCorner.y) + (gapSize * topLeftCorner.y) - wh/2 - (boxSize + gapSize) * (s-1) / 2;
+            square.position.z = 100;
+            square.rotation.y = Math.PI/2;
+            square.tl = new TimelineMax();
+            square.rotated = true;
+            elementsBig.add(square);
+
+            square.tl.to(square.rotation, 1, { y: square.rotation.y+Math.PI/2 });
         }
     }
 }
