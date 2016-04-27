@@ -169,7 +169,6 @@ events
 
 function onMouseMove(e) {
     vector.set((e.clientX / ww) * 2 - 1, - (e.clientY / wh ) * 2 + 1);
-
     raycaster.setFromCamera(vector,camera);
 
     // check for intersects with cubes in grid
@@ -177,7 +176,6 @@ function onMouseMove(e) {
     if (intersects.length > 0) {
         var cube = intersects[0].object;
         if (!cube.tl.isActive()) {
-
             if (cube.isDisabled) return;
 
             // cubes rotate diagonally
@@ -231,7 +229,6 @@ function onInterval() {
     var squareSize = 0;
     var maxSize = 0;
     var squareArray = [];
-
     //console.log(grid.x + ', ' + grid.y);
 
     // maximal square algorithm
