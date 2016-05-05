@@ -134,11 +134,7 @@ function createBoxes() {
     renderer.render(scene, camera);
 }
 
-/*
-
-helpers
-
-*/
+// helpers
 
 var getRandomInt = function(min, max) {
     var returnVal = Math.floor((Math.random() * max) + min);
@@ -161,11 +157,7 @@ function createTextures(color) {
     ];
 }
 
-/*
-
-events
-
-*/
+// events
 
 function onMouseMove(e) {
     vector.set((e.clientX / ww) * 2 - 1, - (e.clientY / wh ) * 2 + 1);
@@ -296,7 +288,7 @@ function onInterval() {
 
                     // if already disabled, skip this big square
                     if (cube.isDisabled) {
-                        console.log('cube disabled: ' + u + ', ' + v);
+                        //console.log('cube disabled: ' + u + ', ' + v);
                         skipSquare = true;
                         break;
                     }
