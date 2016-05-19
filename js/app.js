@@ -11,10 +11,13 @@
 var ww = window.innerWidth;
 var wh = window.innerHeight;
 
+// websocket
+var ws;
+
 // instantiated in init
 var renderer, scene, camera, light, intersects, materialsArray;
 
-// instantiate here 
+// instantiate here
 var elements = new THREE.Object3D();
 var elementsBig = new THREE.Object3D();
 var raycaster = new THREE.Raycaster();
@@ -36,7 +39,40 @@ var grid = { x: Math.floor(ww/boxSize), y: Math.floor(wh/boxSize) };
 var faceLogo = textureLoader.load('./img/logo-black.jpg', init);
 
 function init() {
+    initWebSocket();
+    initScene();
+    createBoxes();
+    animate();
 
+    window.addEventListener('mousemove', onMouseMove, false);
+    //setInterval(onInterval, 4000);
+    window.addEventListener('click', onInterval, false);
+}
+
+var animate = function () {
+    requestAnimationFrame(animate);
+    renderer.render(scene, camera);
+};
+
+function initWebSocket() {
+    ws = new WebSocket("ws://localhost:8181/");
+
+    ws.onopen = function() {
+      ws.send("Message to send");
+      console.log("Message is sent...");
+    };
+
+    ws.onmessage = function(e) {
+      var data = JSON.parse(e.data);
+      console.log(data);
+    };
+
+    ws.onclose = function() {
+      console.log("Connection is closed...");
+    };
+}
+
+function initScene() {
     /* WEBGL RENDERER */
     renderer = new THREE.WebGLRenderer({canvas : document.getElementById('canvas'), antialias: true });
     renderer.setSize(ww,wh);
@@ -66,28 +102,15 @@ function init() {
 
     /* MATERIALS */
     materialsArray = [
-        new THREE.MeshFaceMaterial(createTextures(colorBlue)), 
+        new THREE.MeshFaceMaterial(createTextures(colorBlue)),
         new THREE.MeshFaceMaterial(createTextures(colorGreen)),
-        new THREE.MeshFaceMaterial(createTextures(colorYellow)), 
+        new THREE.MeshFaceMaterial(createTextures(colorYellow)),
         //new THREE.MeshFaceMaterial(createTextures(colorOrange)),
         //new THREE.MeshFaceMaterial(createTextures(colorRed))
     ];
-
-    createBoxes();
-
-    animate();
-
-    window.addEventListener('mousemove', onMouseMove, false);
-    //setInterval(onInterval, 4000);
-    window.addEventListener('click', onInterval, false);
 }
 
-var animate = function () {
-    requestAnimationFrame(animate);
-    renderer.render(scene, camera);
-};
-
-function createBoxes(){
+function createBoxes() {
     var geometry = new THREE.BoxGeometry(boxSize, boxSize, boxSize);
     for (var x = 0; x < grid.x; x++) {
         for (var y = 0; y < grid.y; y++) {
@@ -111,11 +134,7 @@ function createBoxes(){
     renderer.render(scene, camera);
 }
 
-/* 
-
-helpers 
-
-*/
+// helpers
 
 var getRandomInt = function(min, max) {
     var returnVal = Math.floor((Math.random() * max) + min);
@@ -138,15 +157,10 @@ function createTextures(color) {
     ];
 }
 
-/*
-
-events
-
-*/
+// events
 
 function onMouseMove(e) {
     vector.set((e.clientX / ww) * 2 - 1, - (e.clientY / wh ) * 2 + 1);
-
     raycaster.setFromCamera(vector,camera);
 
     // check for intersects with cubes in grid
@@ -154,13 +168,12 @@ function onMouseMove(e) {
     if (intersects.length > 0) {
         var cube = intersects[0].object;
         if (!cube.tl.isActive()) {
-
             if (cube.isDisabled) return;
 
             // cubes rotate diagonally
-            cube.tl.to(cube.rotation, 1, { 
-                z: cube.rotation.z-Math.PI, 
-                x: cube.rotation.x-Math.PI, 
+            cube.tl.to(cube.rotation, 1, {
+                z: cube.rotation.z-Math.PI,
+                x: cube.rotation.x-Math.PI,
                 onComplete: function(a) {
                     // if it has rotated -(pi * 2), then reset to 0 - keeps numbers in control
                     var hasRotated = Math.ceil(this.target.x * 100) == -628;
@@ -169,12 +182,12 @@ function onMouseMove(e) {
                         this.target.z = 0
                     }
 
-                    // toggle rotated flag 
+                    // toggle rotated flag
                     cube.rotated = !cube.rotated;
-                } 
+                }
             });
         }
-    } 
+    }
 
     // check for intersects with big cubes
     intersects = raycaster.intersectObjects(elementsBig.children);
@@ -183,7 +196,7 @@ function onMouseMove(e) {
         if (!cube.tl.isActive()) {
 
             // big cubes rotate horizontally
-            cube.tl.to(cube.rotation, 1, { 
+            cube.tl.to(cube.rotation, 1, {
                 y: cube.rotation.y-Math.PI,
                 onComplete: function(a) {
                     // if it has rotated -(pi * 2), then reset to 0 - keeps numbers in control
@@ -193,9 +206,9 @@ function onMouseMove(e) {
                         this.target.z = 0
                     }
 
-                    // toggle rotated flag 
+                    // toggle rotated flag
                     cube.rotated = !cube.rotated;
-                } 
+                }
             });
         }
     }
@@ -208,7 +221,6 @@ function onInterval() {
     var squareSize = 0;
     var maxSize = 0;
     var squareArray = [];
-
     //console.log(grid.x + ', ' + grid.y);
 
     // maximal square algorithm
@@ -234,7 +246,7 @@ function onInterval() {
                 iBottom = coordsToIndex(x, y-1);
                 iBottomLeft = coordsToIndex(x-1, y-1);
                 squareSize = 1 + Math.min(cubes[iLeft].cornerOfSquareOfSize, cubes[iBottom].cornerOfSquareOfSize, cubes[iBottomLeft].cornerOfSquareOfSize);
-                
+
                 cubes[i].cornerOfSquareOfSize = squareSize;
 
                 //console.log(iBottomLeft + '-' + iLeft + '-' + iBottom + ' -> ' + i);
@@ -245,7 +257,7 @@ function onInterval() {
                     maxSize = squareSize;
 
                 // maintain data structure for big squares
-                // [3] -> [{x:1, y:3}, {x:2, y:6}] 
+                // [3] -> [{x:1, y:3}, {x:2, y:6}]
                 if (squareSize > 1) {
                     if (typeof squareArray[squareSize] === 'undefined') squareArray[squareSize] = [];
                     squareArray[squareSize].push({ x: x, y: y });
@@ -276,7 +288,7 @@ function onInterval() {
 
                     // if already disabled, skip this big square
                     if (cube.isDisabled) {
-                        console.log('cube disabled: ' + u + ', ' + v);
+                        //console.log('cube disabled: ' + u + ', ' + v);
                         skipSquare = true;
                         break;
                     }
