@@ -37,6 +37,7 @@ var grid = { x: Math.floor(ww/boxSize), y: Math.floor(wh/boxSize) };
 //var grid = { x: 5, y: 5 };
 
 var faceLogo = textureLoader.load('./img/logo-black.jpg', init);
+var numLogs = 0;
 
 function init() {
     initWebSocket();
@@ -63,6 +64,9 @@ function initWebSocket() {
     };
 
     ws.onmessage = function(e) {
+      if (numLogs > 5) return;
+      numLogs++;
+      
       var data = JSON.parse(e.data);
       console.log(data);
     };
