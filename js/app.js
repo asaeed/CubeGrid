@@ -16,6 +16,7 @@ var ws;
 
 // instantiated in init
 var renderer, scene, camera, light, intersects, materialsArray;
+var lineMaterial;
 
 // instantiate here
 var elements = new THREE.Object3D();
@@ -37,6 +38,7 @@ var grid = { x: Math.floor(ww/boxSize), y: Math.floor(wh/boxSize) };
 //var grid = { x: 5, y: 5 };
 
 var faceLogo = textureLoader.load('./img/logo-black.jpg', init);
+var counter = 0;
 
 function init() {
     initWebSocket();
@@ -63,8 +65,12 @@ function initWebSocket() {
     };
 
     ws.onmessage = function(e) {
+      //if (counter > 5) return;
+      counter++;
+
       var data = JSON.parse(e.data);
-      console.log(data);
+      //console.log(data);
+      drawBlobs(data);
     };
 
     ws.onclose = function() {
@@ -88,7 +94,6 @@ function initScene() {
     camera.lookAt(new THREE.Vector3(0, 0, 0));
     scene.add(camera);
 
-
     /* LIGHT */
     light = new THREE.DirectionalLight(0xffefef, 1.8);
     light.position.set(1, 1, 1).normalize();
@@ -108,6 +113,8 @@ function initScene() {
         //new THREE.MeshFaceMaterial(createTextures(colorOrange)),
         //new THREE.MeshFaceMaterial(createTextures(colorRed))
     ];
+
+    lineMaterial = new THREE.LineBasicMaterial({ color: '#de3e1c' });
 }
 
 function createBoxes() {
@@ -325,5 +332,37 @@ function onInterval() {
 
             square.tl.to(square.rotation, 1, { y: square.rotation.y+Math.PI/2 });
         }
+    }
+}
+
+// size of incoming blob data
+var bw = 480;
+var bh = 360;
+var lines = [];
+function drawBlobs(data) {
+    console.log(data);
+    // remove old lines
+    for (var h = 0; h < lines.length; h++) {
+        scene.remove(lines[h]);
+    }
+    lines = [];
+
+    for (var i = 0; i < data.numBlobs; i++) {
+        var blobPoints = data.blobs[i];
+        var geometry = new THREE.Geometry();
+        for (var j = 0; j < blobPoints.length; j++) {
+            var x = blobPoints[j].x - ww/2;
+            var y = - blobPoints[j].y + wh/2 - 2;
+            geometry.vertices.push(new THREE.Vector3(x, y, 100))
+        }
+
+        lines.push(new THREE.Line(geometry, lineMaterial));
+        scene.add(lines[i]);
+
+        // var geo = new THREE.Geometry();
+        // geo.vertices.push(new THREE.Vector3(bw-ww/2, 0+wh/2, 100));
+        // geo.vertices.push(new THREE.Vector3(bw-ww/2, -bh+wh/2, 100));
+        // geo.vertices.push(new THREE.Vector3(0-ww/2, -bh+wh/2, 100));
+        // scene.add(new THREE.Line(geo, lineMaterial));
     }
 }
