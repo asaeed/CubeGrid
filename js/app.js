@@ -46,9 +46,9 @@ function init() {
     createBoxes();
     animate();
 
-    window.addEventListener('mousemove', onMouseMove, false);
-    //setInterval(onInterval, 4000);
-    window.addEventListener('click', onInterval, false);
+    //window.addEventListener('mousemove', onMouseMove, false);
+    setInterval(onInterval, 4000);
+    //window.addEventListener('click', onInterval, false);
 }
 
 var animate = function () {
@@ -153,6 +153,10 @@ var coordsToIndex = function(x, y) {
     return grid.y * x + y;
 };
 
+var coordToPixels = function(x) {
+    return -(boxSize * Math.floor(x)) - (gapSize * Math.floor(x));
+};
+
 function createTextures(color) {
     return [
        new THREE.MeshLambertMaterial({ color: color }),
@@ -167,7 +171,11 @@ function createTextures(color) {
 // events
 
 function onMouseMove(e) {
-    vector.set((e.clientX / ww) * 2 - 1, - (e.clientY / wh ) * 2 + 1);
+    checkFlip(e.clientX, e.clientY);
+}
+
+function checkFlip(x, y) {
+    vector.set((x / ww) * 2 - 1, - (y / wh ) * 2 + 1);
     raycaster.setFromCamera(vector,camera);
 
     // check for intersects with cubes in grid
@@ -339,8 +347,15 @@ function onInterval() {
 var bw = 480;
 var bh = 360;
 var lines = [];
+var frameCounter = 0;
+var pointCounter = 0;
 function drawBlobs(data) {
-    console.log(data);
+
+    // skip frames
+    //if (frameCounter > 1) frameCounter = 0;
+    //else { frameCounter++; return; }
+
+    //console.log(data);
     // remove old lines
     for (var h = 0; h < lines.length; h++) {
         scene.remove(lines[h]);
@@ -351,18 +366,21 @@ function drawBlobs(data) {
         var blobPoints = data.blobs[i];
         var geometry = new THREE.Geometry();
         for (var j = 0; j < blobPoints.length; j++) {
-            var x = blobPoints[j].x - ww/2;
-            var y = - blobPoints[j].y + wh/2 - 2;
-            geometry.vertices.push(new THREE.Vector3(x, y, 100))
+
+            // skip points
+            if (pointCounter > 1) pointCounter = 0;
+            else { pointCounter++; continue; }
+
+            var x = blobPoints[j].x * ww/bw - ww/2;
+            var y = - blobPoints[j].y * wh/bh + wh/2 - 2;
+
+            if (getRandomInt(0, 8) == 0)
+                checkFlip(blobPoints[j].x * ww/bw, blobPoints[j].y * wh/bh);
+
+            geometry.vertices.push(new THREE.Vector3(x, y, 22));
         }
 
         lines.push(new THREE.Line(geometry, lineMaterial));
         scene.add(lines[i]);
-
-        // var geo = new THREE.Geometry();
-        // geo.vertices.push(new THREE.Vector3(bw-ww/2, 0+wh/2, 100));
-        // geo.vertices.push(new THREE.Vector3(bw-ww/2, -bh+wh/2, 100));
-        // geo.vertices.push(new THREE.Vector3(0-ww/2, -bh+wh/2, 100));
-        // scene.add(new THREE.Line(geo, lineMaterial));
     }
 }
