@@ -15,7 +15,7 @@ var wh = window.innerHeight;
 var ws;
 
 // instantiated in init
-var renderer, scene, camera, light, intersects, materialsArray;
+var renderer, scene, camera, light, intersects, materialsArray, faceMaterialsArray;
 var lineMaterial;
 
 // instantiate here
@@ -37,17 +37,34 @@ var gapSize = 5;
 var grid = { x: Math.floor(ww/boxSize), y: Math.floor(wh/boxSize) };
 //var grid = { x: 5, y: 5 };
 
-var faceLogo = textureLoader.load('./img/logo-black.jpg', init);
-var counter = 0;
+var imgLogo = textureLoader.load('./img/logo-black.jpg', init);
+var faceArray = [
+    textureLoader.load('./img/faces/kali.jpg', init),
+    textureLoader.load('./img/faces/jesse.jpg', init),
+    textureLoader.load('./img/faces/cha.jpg', init)
+];
+
+faceArray[1].magFilter = THREE.NearestFilter;
+faceArray[1].minFilter = THREE.LinearMipMapLinearFilter;
+faceArray[2].magFilter = THREE.NearestFilter;
+faceArray[2].minFilter = THREE.LinearMipMapLinearFilter;
+
+var imageCounter = 0;
 
 function init() {
+
+    // wait till all images load
+    imageCounter++;
+    if (imageCounter < 4) return;
+    console.log('images loaded');
+
     initWebSocket();
     initScene();
     createBoxes();
     animate();
 
-    //window.addEventListener('mousemove', onMouseMove, false);
-    setInterval(onInterval, 4000);
+    window.addEventListener('mousemove', onMouseMove, false);
+    setInterval(onInterval, 8000);
     //window.addEventListener('click', onInterval, false);
 }
 
@@ -65,9 +82,6 @@ function initWebSocket() {
     };
 
     ws.onmessage = function(e) {
-      //if (counter > 5) return;
-      counter++;
-
       var data = JSON.parse(e.data);
       //console.log(data);
       drawBlobs(data);
@@ -114,6 +128,12 @@ function initScene() {
         //new THREE.MeshFaceMaterial(createTextures(colorRed))
     ];
 
+    faceMaterialsArray = [
+        new THREE.MeshFaceMaterial(createFaceTextures(colorBlue, faceArray[0])),
+        new THREE.MeshFaceMaterial(createFaceTextures(colorGreen, faceArray[1])),
+        new THREE.MeshFaceMaterial(createFaceTextures(colorYellow, faceArray[2]))
+    ];
+
     lineMaterial = new THREE.LineBasicMaterial({ color: '#de3e1c' });
 }
 
@@ -123,6 +143,8 @@ function createBoxes() {
         for (var y = 0; y < grid.y; y++) {
             var material = materialsArray[getRandomInt(0, materialsArray.length)];
             var cube = new THREE.Mesh(geometry, material);
+            cube.type = 'cube';
+            cube.coords = { x: x, y: y };
             cube.position.x = (boxSize * x) + (gapSize * x) - ww/2;
             cube.position.y = (boxSize * y) + (gapSize * y) - wh/2;
             cube.position.z = -20;
@@ -164,68 +186,82 @@ function createTextures(color) {
        new THREE.MeshLambertMaterial({ color: color }),
        new THREE.MeshLambertMaterial({ color: color }),
        new THREE.MeshLambertMaterial({ color: color }),  // starts on this one
-       new THREE.MeshLambertMaterial({ map: faceLogo })  // lands on this one after rotating
+       new THREE.MeshLambertMaterial({ map: imgLogo })  // lands on this one after rotating
+    ];
+}
+
+function createFaceTextures(color, face) {
+    return [
+       new THREE.MeshLambertMaterial({ color: color }),
+       new THREE.MeshLambertMaterial({ color: 'black' }),
+       new THREE.MeshLambertMaterial({ color: color }),
+       new THREE.MeshLambertMaterial({ color: color }),
+       new THREE.MeshLambertMaterial({ color: color }),  // starts on this one
+       new THREE.MeshLambertMaterial({ map: face })  // lands on this one after rotating
     ];
 }
 
 // events
 
 function onMouseMove(e) {
-    checkFlip(e.clientX, e.clientY);
+    var cube = checkIntersect(e.clientX, e.clientY);
+    if (cube)
+        flipCube(cube);
 }
 
-function checkFlip(x, y) {
+function checkIntersect(x, y) {
     vector.set((x / ww) * 2 - 1, - (y / wh ) * 2 + 1);
     raycaster.setFromCamera(vector,camera);
 
+    // check for intersects with planes (squares)
+    intersects = raycaster.intersectObjects(elementsBig.children);
+    if (intersects.length > 0)
+        return intersects[0].object;
+
     // check for intersects with cubes in grid
     intersects = raycaster.intersectObjects(elements.children);
-    if (intersects.length > 0) {
-        var cube = intersects[0].object;
-        if (!cube.tl.isActive()) {
-            if (cube.isDisabled) return;
+    if (intersects.length > 0)
+        return intersects[0].object;
 
-            // cubes rotate diagonally
-            cube.tl.to(cube.rotation, 1, {
-                z: cube.rotation.z-Math.PI,
-                x: cube.rotation.x-Math.PI,
-                onComplete: function(a) {
-                    // if it has rotated -(pi * 2), then reset to 0 - keeps numbers in control
-                    var hasRotated = Math.ceil(this.target.x * 100) == -628;
-                    if (hasRotated) {
-                        this.target.x = 0;
-                        this.target.z = 0
-                    }
+    return null;
+}
 
-                    // toggle rotated flag
-                    cube.rotated = !cube.rotated;
+function flipCube(cube) {
+    if (cube.tl.isActive() || cube.isDisabled) return;
+
+    if (cube.type == 'cube') {
+        // cubes rotate diagonally
+        cube.tl.to(cube.rotation, 1, {
+            z: cube.rotation.z-Math.PI,
+            x: cube.rotation.x-Math.PI,
+            onComplete: function(a) {
+                // if it has rotated -(pi * 2), then reset to 0 - keeps numbers in control
+                var hasRotated = Math.ceil(this.target.x * 100) == -628;
+                if (hasRotated) {
+                    this.target.x = 0;
+                    this.target.z = 0
                 }
-            });
-        }
-    }
 
-    // check for intersects with big cubes
-    intersects = raycaster.intersectObjects(elementsBig.children);
-    if (intersects.length > 0) {
-        cube = intersects[0].object;
-        if (!cube.tl.isActive()) {
-
-            // big cubes rotate horizontally
-            cube.tl.to(cube.rotation, 1, {
-                y: cube.rotation.y-Math.PI,
-                onComplete: function(a) {
-                    // if it has rotated -(pi * 2), then reset to 0 - keeps numbers in control
-                    var hasRotated = Math.ceil(this.target.x * 100) == -628;
-                    if (hasRotated) {
-                        this.target.x = 0;
-                        this.target.z = 0
-                    }
-
-                    // toggle rotated flag
-                    cube.rotated = !cube.rotated;
+                // toggle rotated flag
+                cube.rotated = !cube.rotated;
+            }
+        });
+    } else {
+        // big squares rotate horizontally
+        cube.tl.to(cube.rotation, 1, {
+            y: cube.rotation.y-Math.PI,
+            onComplete: function(a) {
+                // if it has rotated -(pi * 2), then reset to 0 - keeps numbers in control
+                var hasRotated = Math.ceil(this.target.x * 100) == -628;
+                if (hasRotated) {
+                    this.target.x = 0;
+                    this.target.z = 0
                 }
-            });
-        }
+
+                // toggle rotated flag
+                cube.rotated = !cube.rotated;
+            }
+        });
     }
 }
 
@@ -328,14 +364,15 @@ function onInterval() {
             // looks better as a square, not a cube
             var bigBoxSize = s * boxSize + (s-1) * gapSize;
             var geometry = new THREE.BoxGeometry(bigBoxSize, bigBoxSize, 1);
-            var material = materialsArray[getRandomInt(0, materialsArray.length)];
+            var material = faceMaterialsArray[getRandomInt(0, faceMaterialsArray.length)];
             var square = new THREE.Mesh(geometry, material);
             square.position.x = (boxSize * topLeftCorner.x) + (gapSize * topLeftCorner.x) - ww/2 + (boxSize + gapSize) * (s-1) / 2;
             square.position.y = (boxSize * topLeftCorner.y) + (gapSize * topLeftCorner.y) - wh/2 - (boxSize + gapSize) * (s-1) / 2;
-            square.position.z = 100;
+            square.position.z = 400;
             square.rotation.y = Math.PI/2;
             square.tl = new TimelineMax();
             square.rotated = true;
+            square.type = 'square';
             elementsBig.add(square);
 
             square.tl.to(square.rotation, 1, { y: square.rotation.y+Math.PI/2 });
@@ -374,13 +411,17 @@ function drawBlobs(data) {
             var x = blobPoints[j].x * ww/bw - ww/2;
             var y = - blobPoints[j].y * wh/bh + wh/2 - 2;
 
-            if (getRandomInt(0, 8) == 0)
-                checkFlip(blobPoints[j].x * ww/bw, blobPoints[j].y * wh/bh);
+            if (getRandomInt(0, 4) == 0) {
+                var cube = checkIntersect(blobPoints[j].x * ww/bw, blobPoints[j].y * wh/bh);
+                if (cube)
+                    flipCube(cube);
+            }
 
             geometry.vertices.push(new THREE.Vector3(x, y, 22));
         }
 
-        lines.push(new THREE.Line(geometry, lineMaterial));
-        scene.add(lines[i]);
+        // draw contour
+        //lines.push(new THREE.Line(geometry, lineMaterial));
+        //scene.add(lines[i]);
     }
 }
