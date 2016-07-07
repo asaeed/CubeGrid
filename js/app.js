@@ -44,10 +44,10 @@ var faceArray = [
     textureLoader.load('./img/faces/cha.jpg', init)
 ];
 
-faceArray[1].magFilter = THREE.NearestFilter;
-faceArray[1].minFilter = THREE.LinearMipMapLinearFilter;
-faceArray[2].magFilter = THREE.NearestFilter;
-faceArray[2].minFilter = THREE.LinearMipMapLinearFilter;
+// faceArray[1].magFilter = THREE.NearestFilter;
+// faceArray[1].minFilter = THREE.LinearMipMapLinearFilter;
+// faceArray[2].magFilter = THREE.NearestFilter;
+// faceArray[2].minFilter = THREE.LinearMipMapLinearFilter;
 
 var imageCounter = 0;
 
@@ -58,12 +58,16 @@ function init() {
     if (imageCounter < 4) return;
     console.log('images loaded');
 
-    initWebSocket();
+    //initWebSocket('10.119.93.151', 0, 0.5);
+    //initWebSocket('localhost', 0.5, 1);
+
+    initWebSocket('localhost', 0, 1);
+
     initScene();
     createBoxes();
     animate();
 
-    window.addEventListener('mousemove', onMouseMove, false);
+    //window.addEventListener('mousemove', onMouseMove, false);
     setInterval(onInterval, 8000);
     //window.addEventListener('click', onInterval, false);
 }
@@ -73,22 +77,22 @@ var animate = function () {
     renderer.render(scene, camera);
 };
 
-function initWebSocket() {
-    ws = new WebSocket("ws://localhost:8181/");
+function initWebSocket(host, min, max) {
+    ws = new WebSocket('ws://' + host + ':8181/');
 
     ws.onopen = function() {
-      ws.send("Message to send");
-      console.log("Message is sent...");
+      ws.send('{ type: "blob" }');
+      console.log('Message is sent...');
     };
 
     ws.onmessage = function(e) {
       var data = JSON.parse(e.data);
-      //console.log(data);
-      drawBlobs(data);
+      console.log(data);
+      drawBlobs(data, min, max);
     };
 
     ws.onclose = function() {
-      console.log("Connection is closed...");
+      console.log('Connection is closed...');
     };
 }
 
@@ -96,6 +100,7 @@ function initScene() {
     /* WEBGL RENDERER */
     renderer = new THREE.WebGLRenderer({canvas : document.getElementById('canvas'), antialias: true });
     renderer.setSize(ww,wh);
+    //renderer.setPixelRatio(window.devicePixelRatio ? window.devicePixelRatio : 1);
     renderer.shadowMap.enabled = true;
 
     /* SCENE */
@@ -386,7 +391,7 @@ var bh = 360;
 var lines = [];
 var frameCounter = 0;
 var pointCounter = 0;
-function drawBlobs(data) {
+function drawBlobs(data, min, max) {
 
     // skip frames
     //if (frameCounter > 1) frameCounter = 0;
@@ -408,11 +413,18 @@ function drawBlobs(data) {
             if (pointCounter > 1) pointCounter = 0;
             else { pointCounter++; continue; }
 
-            var x = blobPoints[j].x * ww/bw - ww/2;
+            //var x = blobPoints[j].x * ww/bw - ww/2;
+            //var y = - blobPoints[j].y * wh/bh + wh/2 - 2;
+
+            var rangeSize = ww*max - ww*min;
+            var rangeMin = ww * min;
+
+            var x = blobPoints[j].x * rangeSize/bw - ww/2 + rangeMin;
             var y = - blobPoints[j].y * wh/bh + wh/2 - 2;
 
             if (getRandomInt(0, 4) == 0) {
-                var cube = checkIntersect(blobPoints[j].x * ww/bw, blobPoints[j].y * wh/bh);
+                //var cube = checkIntersect(blobPoints[j].x * ww/bw, blobPoints[j].y * wh/bh);
+                var cube = checkIntersect(blobPoints[j].x * rangeSize/bw + rangeMin, blobPoints[j].y * wh/bh);
                 if (cube)
                     flipCube(cube);
             }
@@ -421,7 +433,7 @@ function drawBlobs(data) {
         }
 
         // draw contour
-        //lines.push(new THREE.Line(geometry, lineMaterial));
-        //scene.add(lines[i]);
+        lines.push(new THREE.Line(geometry, lineMaterial));
+        scene.add(lines[i]);
     }
 }
