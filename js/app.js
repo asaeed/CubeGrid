@@ -32,8 +32,8 @@ var colorYellow = '#ffde1a';
 var colorOrange = '#f58300';
 var colorRed = '#de3e1c';
 
-var boxSize = 50;
-var gapSize = 5;
+var boxSize = 120;
+var gapSize = 12;
 var grid = { x: Math.floor(ww/boxSize), y: Math.floor(wh/boxSize) };
 //var grid = { x: 5, y: 5 };
 
@@ -87,7 +87,7 @@ function initWebSocket(host, min, max) {
 
     ws.onmessage = function(e) {
       var data = JSON.parse(e.data);
-      console.log(data);
+      //console.log(data);
       drawBlobs(data, min, max);
     };
 
@@ -109,7 +109,7 @@ function initScene() {
     /* CAMERA */
     //camera = new THREE.PerspectiveCamera(50, ww/wh, 1, 10000);
     camera = new THREE.OrthographicCamera(ww/-2, ww/2, wh/2, wh/-2, 1, 10000);
-    camera.position.set(0, 0, 600);
+    camera.position.set(0, 0, 1000);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
     scene.add(camera);
 
@@ -265,6 +265,27 @@ function flipCube(cube) {
 
                 // toggle rotated flag
                 cube.rotated = !cube.rotated;
+                cube.flipsLeft -= 1;
+
+                // once square has flipped to a few times, convert it back to cubes
+                if (cube.flipsLeft == 0) {
+                    elementsBig.remove(cube);
+
+                    // enable cubes behind this square
+                    var topLeftCorner = cube.topLeftCorner;
+                    var s = cube.cubesWide;
+                    for (var u = topLeftCorner.x; u < topLeftCorner.x+s; u++) {
+                        for (var v = topLeftCorner.y-s+1; v < topLeftCorner.y+1; v++) {
+                            var cubeInside = elements.children[coordsToIndex(u, v)];
+
+                            // disable cube
+                            cubeInside.isDisabled = false;
+
+                            // animate to black side
+                            cubeInside.tl.to(cubeInside.rotation, 0.4, { x: 0, y: 0, z: 0 });
+                        }
+                    }
+                }
             }
         });
     }
@@ -378,6 +399,9 @@ function onInterval() {
             square.tl = new TimelineMax();
             square.rotated = true;
             square.type = 'square';
+            square.cubesWide = s;
+            square.topLeftCorner = topLeftCorner;
+            square.flipsLeft = 5;
             elementsBig.add(square);
 
             square.tl.to(square.rotation, 1, { y: square.rotation.y+Math.PI/2 });
@@ -391,6 +415,11 @@ var bh = 360;
 var lines = [];
 var frameCounter = 0;
 var pointCounter = 0;
+var previousCubes = [];
+var previousCubes1 = [];
+var previousCubes2 = [];
+var previousCubes3 = [];
+var previousCubes4 = [];
 function drawBlobs(data, min, max) {
 
     // skip frames
@@ -403,6 +432,8 @@ function drawBlobs(data, min, max) {
         scene.remove(lines[h]);
     }
     lines = [];
+
+    var currentCubes = [];
 
     for (var i = 0; i < data.numBlobs; i++) {
         var blobPoints = data.blobs[i];
@@ -419,18 +450,29 @@ function drawBlobs(data, min, max) {
             var rangeSize = ww*max - ww*min;
             var rangeMin = ww * min;
 
-            var x = blobPoints[j].x * rangeSize/bw - ww/2 + rangeMin;
-            var y = - blobPoints[j].y * wh/bh + wh/2 - 2;
+            var x = blobPoints[j].x * rangeSize/bw + rangeMin;
+            var y = blobPoints[j].y * wh/bh;
 
-            if (getRandomInt(0, 4) == 0) {
-                //var cube = checkIntersect(blobPoints[j].x * ww/bw, blobPoints[j].y * wh/bh);
-                var cube = checkIntersect(blobPoints[j].x * rangeSize/bw + rangeMin, blobPoints[j].y * wh/bh);
-                if (cube)
-                    flipCube(cube);
-            }
+            //var cube = checkIntersect(blobPoints[j].x * ww/bw, blobPoints[j].y * wh/bh);
+            var cube = checkIntersect(x, y);
 
-            geometry.vertices.push(new THREE.Vector3(x, y, 22));
+            if (cube && getRandomInt(0, 3) < 2 &&
+                (previousCubes.indexOf(cube) == -1 &&
+                previousCubes1.indexOf(cube) == -1 &&
+                previousCubes2.indexOf(cube) == -1 &&
+                previousCubes3.indexOf(cube) == -1 &&
+                previousCubes4.indexOf(cube) == -1))
+                flipCube(cube);
+            currentCubes.push(cube);
+
+            geometry.vertices.push(new THREE.Vector3(x - ww/2, -y + wh/2 - 2, 600));
         }
+
+        previousCubes4 = previousCubes3;
+        previousCubes3 = previousCubes2;
+        previousCubes2 = previousCubes1;
+        previousCubes1 = previousCubes;
+        previousCubes = currentCubes;
 
         // draw contour
         lines.push(new THREE.Line(geometry, lineMaterial));
