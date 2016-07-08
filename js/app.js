@@ -269,7 +269,13 @@ function flipCube(cube) {
 
                 // once square has flipped to a few times, convert it back to cubes
                 if (cube.flipsLeft == 0) {
-                    elementsBig.remove(cube);
+                    cube.tl.to(cube.scale, 0.6,  {
+                        x: 0, y: 0, z: 0,
+                        ease: Cubic.easeIn,
+                        onComplete: function(a) {
+                            elementsBig.remove(cube);
+                        }
+                    });
 
                     // enable cubes behind this square
                     var topLeftCorner = cube.topLeftCorner;
@@ -280,9 +286,10 @@ function flipCube(cube) {
 
                             // disable cube
                             cubeInside.isDisabled = false;
+                            cubeInside.rotated = false;
 
                             // animate to black side
-                            cubeInside.tl.to(cubeInside.rotation, 0.4, { x: 0, y: 0, z: 0 });
+                            cubeInside.tl.to(cubeInside.rotation, 0.4, { x: 0, y: 0, z: 0, delay: 1 });
                         }
                     }
                 }
