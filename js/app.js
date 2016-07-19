@@ -12,7 +12,7 @@ var ww = window.innerWidth;
 var wh = window.innerHeight;
 
 // websocket
-var ws;
+//var ws;
 
 // instantiated in init
 var renderer, scene, camera, light, intersects, materialsArray, faceMaterialsArray;
@@ -32,16 +32,38 @@ var colorYellow = '#ffde1a';
 var colorOrange = '#f58300';
 var colorRed = '#de3e1c';
 
-var boxSize = 120;
-var gapSize = 12;
+var boxSize = 200;
+var gapSize = 20;
 var grid = { x: Math.floor(ww/boxSize), y: Math.floor(wh/boxSize) };
 //var grid = { x: 5, y: 5 };
 
 var imgLogo = textureLoader.load('./img/logo-black.jpg', init);
 var faceArray = [
+    textureLoader.load('./img/faces/adam_pruden.jpg', init),
+    textureLoader.load('./img/faces/adam_wrigley.jpg', init),
+    textureLoader.load('./img/faces/ahmad_saeed.jpg', init),
+    textureLoader.load('./img/faces/albert_dang.jpg', init),
+    textureLoader.load('./img/faces/alessandra_valenti.jpg', init),
+    textureLoader.load('./img/faces/alexandra_coym.jpg', init),
+    textureLoader.load('./img/faces/allie_strauss.jpg', init),
+    textureLoader.load('./img/faces/anna_plumlee.jpg', init),
+    textureLoader.load('./img/faces/anna_shausmanova.jpg', init),
+    textureLoader.load('./img/faces/ariana_arbes.jpg', init),
+    textureLoader.load('./img/faces/aslam_jamal.jpg', init),
+    textureLoader.load('./img/faces/brian_luley.jpg', init),
+    textureLoader.load('./img/faces/caitlin_piery.jpg', init),
+    textureLoader.load('./img/faces/cassy_michel.jpg', init),
+    textureLoader.load('./img/faces/chia-wei_liu.jpg', init),
+    textureLoader.load('./img/faces/damon_ahola.jpg', init),
+    textureLoader.load('./img/faces/daniel_holtzman.jpg', init),
+    textureLoader.load('./img/faces/dennis_villa.jpg', init),
+    textureLoader.load('./img/faces/dominique_ward.jpg', init),
+    textureLoader.load('./img/faces/emile_hoffman.jpg', init),
+    textureLoader.load('./img/faces/erik_manley.jpg', init),
+    textureLoader.load('./img/faces/erika_wei.jpg', init),
+
     textureLoader.load('./img/faces/kali.jpg', init),
-    textureLoader.load('./img/faces/jesse.jpg', init),
-    textureLoader.load('./img/faces/cha.jpg', init)
+    textureLoader.load('./img/faces/jesse.jpg', init)
 ];
 
 // faceArray[1].magFilter = THREE.NearestFilter;
@@ -55,13 +77,17 @@ function init() {
 
     // wait till all images load
     imageCounter++;
-    if (imageCounter < 4) return;
+    if (imageCounter < faceArray.length + 1) return;
     console.log('images loaded');
+
+    initWebSocket('localhost', 0, 1);
 
     //initWebSocket('10.119.93.151', 0, 0.5);
     //initWebSocket('localhost', 0.5, 1);
 
-    initWebSocket('localhost', 0, 1);
+    //initWebSocket('10.119.93.151', 0, 0.33);
+    //initWebSocket('localhost', 0.33, 0.66);
+    //initWebSocket('10.119.93.103', 0.66, 1);
 
     initScene();
     createBoxes();
@@ -78,7 +104,7 @@ var animate = function () {
 };
 
 function initWebSocket(host, min, max) {
-    ws = new WebSocket('ws://' + host + ':8181/');
+    var ws = new WebSocket('ws://' + host + ':8181/');
 
     ws.onopen = function() {
       ws.send('{ type: "blob" }');
@@ -87,7 +113,6 @@ function initWebSocket(host, min, max) {
 
     ws.onmessage = function(e) {
       var data = JSON.parse(e.data);
-      //console.log(data);
       drawBlobs(data, min, max);
     };
 
@@ -133,11 +158,11 @@ function initScene() {
         //new THREE.MeshFaceMaterial(createTextures(colorRed))
     ];
 
-    faceMaterialsArray = [
-        new THREE.MeshFaceMaterial(createFaceTextures(colorBlue, faceArray[0])),
-        new THREE.MeshFaceMaterial(createFaceTextures(colorGreen, faceArray[1])),
-        new THREE.MeshFaceMaterial(createFaceTextures(colorYellow, faceArray[2]))
-    ];
+    var colorArray = [colorBlue, colorGreen, colorYellow];
+    faceMaterialsArray = [];
+    for (var i = 0; i < faceArray.length; i++) {
+        faceMaterialsArray.push(new THREE.MeshFaceMaterial(createFaceTextures(colorArray[getRandomInt(0, colorArray.length)], faceArray[i])));
+    }
 
     lineMaterial = new THREE.LineBasicMaterial({ color: '#de3e1c' });
 }
@@ -463,13 +488,15 @@ function drawBlobs(data, min, max) {
             //var cube = checkIntersect(blobPoints[j].x * ww/bw, blobPoints[j].y * wh/bh);
             var cube = checkIntersect(x, y);
 
-            if (cube && getRandomInt(0, 3) < 2 &&
+            if (cube && getRandomInt(0, 2) == 0 &&
                 (previousCubes.indexOf(cube) == -1 &&
-                previousCubes1.indexOf(cube) == -1 &&
-                previousCubes2.indexOf(cube) == -1 &&
-                previousCubes3.indexOf(cube) == -1 &&
-                previousCubes4.indexOf(cube) == -1))
+                //previousCubes1.indexOf(cube) == -1 &&
+                //previousCubes2.indexOf(cube) == -1 &&
+                //previousCubes3.indexOf(cube) == -1 &&
+                //previousCubes4.indexOf(cube) == -1 &&
+                true)) {
                 flipCube(cube);
+            }
             currentCubes.push(cube);
 
             geometry.vertices.push(new THREE.Vector3(x - ww/2, -y + wh/2 - 2, 600));
